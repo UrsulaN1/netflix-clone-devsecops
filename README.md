@@ -115,6 +115,7 @@ sudo apt-get update
 sudo apt-get install docker.io -y   # this command create the docker group automatically. Otherwise, create group with "sudo groupadd docker"
 sudo usermod -aG docker $USER
 newgrp docker
+sudo systemctl status docker --no-pager
 ```
 
 ## 💡 <u>STEP 1.4: Create Docker Image Using Your Movie Database API Key:</u>
