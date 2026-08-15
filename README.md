@@ -180,16 +180,25 @@ Navigate to **Manage Jenkins** → **Plugins** → **Available Plugins** and ins
 * SonarQube Scanner
 * NodeJs
 * OWASP Dependency-Check
+* Docker
+* Docker
+* Docker commons
 * Docker Pipeline
+* Docker API
+* docker-build-step
+* Kubernetes
+* Kubernetes Credentials
 * Kubernetes CLI
-* Email Extension
-* Workspace Cleanup
-* Pipeline stage view
+* Kubernetes :: Pipeline :: DevOps Steps
+* Email Extension Template
+* Slack Notification
+* Distributed Workspace Cleanup
+* Pipeline: Stage View
 * Prometheus metrics  (restart on success)
 
 Ensure the following system configurations and tool mappings are completed:
 
-* JDK tool named `jdk17`
+* JDK tool named `jdk21`
 * NodeJS tool named `node24`
 * SonarScanner tool named `sonar-scanner`
 * SonarQube server named `sonar-server`
