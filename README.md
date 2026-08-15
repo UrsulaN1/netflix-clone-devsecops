@@ -132,7 +132,11 @@ sudo systemctl status docker --no-pager
 ```bash
 docker build --build-arg TMDB_V3_API_KEY=<your-api-key> -t netflix .
 docker run -d --name netflix -p 8081:80 netflix:latest
+docker images
+docker ps
 ```
+
+Verify the running application on the browser: [https://<YOUR_SERVER_IP:8081>]
 
 <h1 align="center">🌟 PHASE 2: JENKINS & SECURITY SETUP</h1>
 
