@@ -253,7 +253,7 @@ trivy image <imageid>
 
 Under Generate Tokens:
 
-Enter a descriptive name, such as ```***jenkins-token***```.
+Enter a descriptive name, such as ```***Sonar-token***```.
 Select a token type and choose an expiration date.
 Click Generate and copy the token value.
 
@@ -277,7 +277,7 @@ In SonarQube, navigate to: **Administration** → **Configuration** → **Webhoo
 
 Enter configuration parameters:
 
-**Name**: Jenkins
+**Name**: sq-netflix-webhook
 **URL**: http://JENKINS_PRIVATE_IP:8080/sonarqube-webhook/
 
 ## 💡 <u>STEP 2.8: Configure the SonarQube server systems in Jenkins:</u>
@@ -326,8 +326,8 @@ Save settings.
 pipeline {
     agent any
     tools {
-        jdk 'jdk17'
-        nodejs 'node16'
+        jdk 'jdk21'
+        nodejs 'node18'
     }
     environment {
         SCANNER_HOME = tool 'sonar-scanner'
