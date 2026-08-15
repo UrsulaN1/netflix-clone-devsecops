@@ -228,6 +228,16 @@ sudo apt-get update
 sudo apt-get install trivy      
 ```
 
+Scan image using trivy
+
+```bash
+# List docker images
+docker images
+
+#Scan image
+trivy image <imageid>
+```
+
 ## 💡 <u>STEP 2.6: Generate the SonarQube Token:</u>
 
 **Inside the SonarQube interface:** Navigate to **Profile icon** → **My Account** → **Security**
