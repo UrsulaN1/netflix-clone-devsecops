@@ -199,7 +199,7 @@ Navigate to **Manage Jenkins** → **Plugins** → **Available Plugins** and ins
 Ensure the following system configurations and tool mappings are completed:
 
 * JDK tool named `jdk21`
-* NodeJS tool named `node24`
+* NodeJS tool named `node18`
 * SonarScanner tool named `sonar-scanner`
 * SonarQube server named `sonar-server`
 * Secret-text credential `tmdb-api-key`
@@ -212,7 +212,7 @@ Ensure the following system configurations and tool mappings are completed:
 
 Navigate to **Manage Jenkins** → **Tools**
 
-* Add and configure **jdk17** and **nodejs16**
+* Add and configure **jdk21** and **nodejs18**
 * Click on Apply and Save
 
 ## 💡 <u>STEP 2.4: Install SonarQube and Trivy Platforms:</u>
