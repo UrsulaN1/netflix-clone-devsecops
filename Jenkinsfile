@@ -30,11 +30,7 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 sh '''
-                    if [ -f package-lock.json ]; then
-                        npm ci
-                    else
                         npm install
-                    fi
                 '''
             }
         }
