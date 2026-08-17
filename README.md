@@ -315,27 +315,19 @@ Select **Projects** --> **Manual** --> **Create Project:**
 ### 2. Create a GitHub Webhook
 Create a Webhook in your repository to trigger the Jenkins job on push. Already have a Webhook configured? Skip this step.
 
-Go to your GitHub repository.
-Click on the Settings tab in the top navigation bar.
-Click on Webhooks from the left-hand sidebar.
-Click the Add webhook button on the top right.
-Provide the following exact configurations:
-Payload URL: Enter your Jenkins URL followed by /github-webhook/ (e.g., http://your-jenkins-ip:8080/github-webhook/). 
-Note: The trailing slash is strictly required.
-Content type: Select application/json.
-Secret: Leave this blank if you are using default polling, or enter your Jenkins API Token if authentication is enforced.
-Which events: Select Just the push event.
-Click Add webhook to complete the setup.
+- Go to your GitHub repository.
+- Click on the Settings tab in the top navigation bar.
+- Click on Webhooks from the left-hand sidebar.
+- Click the Add webhook button on the top right.
+- Provide the following exact configurations:
+ - **Payload URL**: Enter your Jenkins URL followed by /github-webhook/ (e.g., http://your-jenkins-ip:8080/github-webhook/).
+ - **Note: The trailing slash is strictly required.**
+ - **Content type**: Select application/json.
+ - **Secret**: Leave this blank if you are using default polling, or enter your Jenkins API Token if authentication is enforced.
+ - **Which events**: Select Just the push event.
+- Click **Add webhook** to complete the setup.
 
-## 💡 <u>STEP 2.10: Configure the OWASP Dependency-Check Tool:</u>
-
-Navigate to **Manage Jenkins** → **Plugins** → **Available Plugins** and install:
-
-* OWASP Dependency-Check
-* Docker
-* Docker Pipeline
-
-## 💡 <u>STEP 2.8: Configure the OWASP Tool in Jenkins:</u>
+## 💡 <u>STEP 2.10: Configure the OWASP Tool in Jenkins:</u>
 
 Navigate to **Manage Jenkins** → **Tools**
 
@@ -423,7 +415,7 @@ Navigate to **Manage Jenkins** → **Credentials** → **Add credentials**
 * **Description**: dockerhub
 
 ```ℹ️ Note: Use the **Username** with **password** option rather than **Secret text** because the Jenkins Docker Pipeline orchestration syntax explicitly expects a standard pair interface.**```
-Create.
+* Create.
 
 ## 💡 <u>STEP 4.2: Map Docker Installation Tool</u>
 
