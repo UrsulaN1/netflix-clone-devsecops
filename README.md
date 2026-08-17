@@ -301,6 +301,32 @@ Select **Projects** --> **Manual** --> **Create Project:**
 * **Branch name**: main
 * Click **Create**, select **With Jenkins** --> **GitHub** and proceed to configure the analysis properties
 
+### 1. Create a Pipeline Job
+**Create a Pipeline in order to automatically analyze your project.**
+
+- From Jenkins' dashboard, click **New Item** and create a **Pipeline** Job.
+- Under Build Triggers, choose Trigger builds remotely. You must set a unique, secret token for this field.
+- Under Pipeline, make sure the parameters are set as follows:
+- Definition: **Pipeline script from SCM**
+- SCM: Configure your SCM. Make sure to only build your main branch. For example, if your main branch is called "main", put "*/main" under Branches to build.
+- Script Path: Jenkinsfile
+- Click Save.
+
+### 2. Create a GitHub Webhook
+Create a Webhook in your repository to trigger the Jenkins job on push. Already have a Webhook configured? Skip this step.
+
+Go to your GitHub repository.
+Click on the Settings tab in the top navigation bar.
+Click on Webhooks from the left-hand sidebar.
+Click the Add webhook button on the top right.
+Provide the following exact configurations:
+Payload URL: Enter your Jenkins URL followed by /github-webhook/ (e.g., http://your-jenkins-ip:8080/github-webhook/). 
+Note: The trailing slash is strictly required.
+Content type: Select application/json.
+Secret: Leave this blank if you are using default polling, or enter your Jenkins API Token if authentication is enforced.
+Which events: Select Just the push event.
+Click Add webhook to complete the setup.
+
 ## 💡 <u>STEP 2.10: Configure the OWASP Dependency-Check Tool:</u>
 
 Navigate to **Manage Jenkins** → **Plugins** → **Available Plugins** and install:
