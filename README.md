@@ -277,13 +277,16 @@ In SonarQube, navigate to: **Administration** → **Configuration** → **Webhoo
 Enter configuration parameters:
 
 **Name**: sq-netflix-webhook
+
 **URL**: http://JENKINS_PRIVATE_IP:8080/sonarqube-webhook/
 
 ## 💡 <u>STEP 2.8: Configure the SonarQube server systems in Jenkins:</u>
 
 Navigate to **Manage Jenkins** → **System** → **SonarQube servers**
 **Name**: sonar-server
+
 **Server URL**: [http://sonarqube-PUBLIC-IP]:9000
+
 **Server authentication token**: Sonar-token
 
 Navigate to **Manage Jenkins** → **Tools** → **SonarQube Scanner Installations**
