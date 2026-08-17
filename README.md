@@ -40,6 +40,7 @@ The guide also includes an optional Kubernetes and Argo CD phase for teams that 
 | Area | Tool or Service | Purpose |
 | :--- | :--- | :--- |
 | **Cloud platform** | AWS EC2 / Amazon EKS | Compute and optional Kubernetes orchestration |
+| **Infrastructure as Code** | Terraform | Provision and destroy the EKS VPC, cluster, managed node group, access entries, and related AWS resources |
 | **Source control** | GitHub | Application and pipeline source |
 | **CI/CD** | Jenkins | Automated build, scan, push, and deployment |
 | **Code quality** | SonarQube | Static analysis and Quality Gate enforcement |
@@ -54,7 +55,7 @@ The guide also includes an optional Kubernetes and Argo CD phase for teams that 
 
 Before starting, ensure you have prepared the following:
 
-* **☁️ AWS Account:** Active account with administrative permissions to provision EC2 instances, Security Groups, IAM Roles, and optionally EKS clusters.
+* **☁️ AWS Account:** Active account with permissions to provision EC2, VPC, IAM, and Amazon EKS resources. Phase 7 provisions the EKS infrastructure with Terraform.
 * **🐙 GitHub Repository:** A configured repository containing the application source code and this `README.md`.
 * **🎬 TMDB Account:** A registered The Movie Database (TMDB) account with an active API Key generated for application authentication.
 * **🐳 Docker Hub Account:** A Docker Hub registry account for hosting and pulling your container images.
@@ -86,7 +87,7 @@ Restrict each port to the smallest possible source range or security group.
 | 9090       | Prometheus          | Monitoring administrators only               |
 | 3000       | Grafana             | Monitoring administrators only               |
 | 9100       | Node Exporter       | Prometheus host or security group only       |
-| 30000-     | Argo CD             | Argo CD                                      |
+| 30000-32767| Kubernetes NodePort | Trusted administrator CIDRs only             |
 
 Do not expose administrative services to `0.0.0.0/0` unless the environment is temporary and isolated.
 
@@ -302,30 +303,32 @@ Select **Projects** --> **Manual** --> **Create Project:**
 * Click **Create**, select **With Jenkins** --> **GitHub** and proceed to configure the analysis properties
 
 ### 1. Create a Pipeline Job
+
 **Create a Pipeline in order to automatically analyze your project.**
 
-- From Jenkins' dashboard, click **New Item** and create a **Pipeline** Job.
-- Under Build Triggers, choose Trigger builds remotely. You must set a unique, secret token for this field.
-- Under Pipeline, make sure the parameters are set as follows:
-- Definition: **Pipeline script from SCM**
-- SCM: Configure your SCM. Make sure to only build your main branch. For example, if your main branch is called "main", put "*/main" under Branches to build.
-- Script Path: Jenkinsfile
-- Click Save.
+* From Jenkins' dashboard, click **New Item** and create a **Pipeline** Job.
+* Under Build Triggers, choose Trigger builds remotely. You must set a unique, secret token for this field.
+* Under Pipeline, make sure the parameters are set as follows:
+* Definition: **Pipeline script from SCM**
+* SCM: Configure your SCM. Make sure to only build your main branch. For example, if your main branch is called "main", put "*/main" under ranches to build.
+* Script Path: Jenkinsfile
+* Click Save.
 
 ### 2. Create a GitHub Webhook
+
 Create a Webhook in your repository to trigger the Jenkins job on push. Already have a Webhook configured? Skip this step.
 
-- Go to your GitHub repository.
-- Click on the Settings tab in the top navigation bar.
-- Click on Webhooks from the left-hand sidebar.
-- Click the Add webhook button on the top right.
-- Provide the following exact configurations:
- - **Payload URL**: Enter your Jenkins URL followed by /github-webhook/ (e.g., http://your-jenkins-ip:8080/github-webhook/).
- - **Note: The trailing slash is strictly required.**
- - **Content type**: Select application/json.
- - **Secret**: Leave this blank if you are using default polling, or enter your Jenkins API Token if authentication is enforced.
- - **Which events**: Select Just the push event.
-- Click **Add webhook** to complete the setup.
+* Go to your GitHub repository.
+* Click on the Settings tab in the top navigation bar.
+* Click on Webhooks from the left-hand sidebar.
+* Click the Add webhook button on the top right.
+* Provide the following exact configurations:
+  * **Payload URL**: Enter your Jenkins URL followed by /github-webhook/ (e.g., [http://your-jenkins-ip:8080/github-webhook/]).
+  * **Note: The trailing slash is strictly required.**
+  * **Content type**: Select application/json.
+  * **Secret**: Leave this blank if you are using default polling, or enter your Jenkins API Token if authentication is enforced.
+  * **Which events**: Select Just the push event.
+* Click **Add webhook** to complete the setup.
 
 ## 💡 <u>STEP 2.10: Configure the OWASP Tool in Jenkins:</u>
 
@@ -415,7 +418,8 @@ Navigate to **Manage Jenkins** → **Credentials** → **Add credentials**
 * **Description**: dockerhub
 
 ```ℹ️ Note: Use the **Username** with **password** option rather than **Secret text** because the Jenkins Docker Pipeline orchestration syntax explicitly expects a standard pair interface.**```
-* Create.
+
+* Create
 
 ## 💡 <u>STEP 4.2: Map Docker Installation Tool</u>
 
@@ -840,67 +844,141 @@ aws --version
 * Go to your EC2 Dashboard, select your running instance, click **Actions** $\rightarrow$ **Security** $\rightarrow$ **Modify IAM role**.
 * Select your new role and save.
 
-## 💡 <u>STEP 7.3 Install **eksctl** and Provision the Amazon EKS Cluster</u>
+## 💡 <u>STEP 7.3: Install Terraform and Provision Amazon EKS as Code</u>
 
-* eksctl automates the creation of your Kubernetes control plane, subnets, and node group components via AWS CloudFormation.
+The EKS cluster is provisioned with **Terraform instead of `eksctl` or manual AWS Console cluster creation**. Terraform owns the VPC, public subnets, EKS control plane, managed node group, EKS add-ons, IAM access entries, and the worker-node security-group rules used later by Node Exporter and NodePort services.
 
-### 1. Install eksctl Binary
+> [!IMPORTANT]
+> Keep the Terraform state file safe. Terraform needs its state to reliably update and destroy the resources it created. For this hands-on lab, local state is used for simplicity. Use a protected remote backend such as Amazon S3 for team or production environments.
 
-```bash
-# Download and extract the latest eksctl binary
-curl --silent --location "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
-
-# Move the binary to your local bin directory
-sudo mv /tmp/eksctl /usr/local/bin
-
-# Verify it works
-eksctl version
-```
-
-### 2. Provision the Managed EKS Cluster
-
-* Execute the cluster template command. Note: The master orchestration provisioning routine typically takes 10 to 15 minutes to complete.
+### 1. Install Terraform
 
 ```bash
-eksctl create cluster \
-  --name <your-cluster-name> \
-  --region <your region> \
-  --nodegroup-name <node-group-name> \
-  --node-type <instance-type-with-atleast-a-4vcpu-4Gi-memory> \
-  --nodes 1 \
-  --nodes-min 1 \
-  --nodes-max 2 \
-  --managed
+sudo apt-get update
+sudo apt-get install -y wget gpg coreutils
+
+wget -O - https://apt.releases.hashicorp.com/gpg \
+  | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main" \
+  | sudo tee /etc/apt/sources.list.d/hashicorp.list
+
+sudo apt-get update
+sudo apt-get install -y terraform
+terraform version
 ```
 
-## 💡 <u>STEP 7.4 Configure Local Cluster Access and EKS IAM Access Entries</u>
+### 2. Terraform directory used by this project
 
-* Ensure your EC2 local terminal and your AWS Web Management Console identity both hold absolute cluster administrative rights.
+The repository contains the following EKS infrastructure files:
 
-### 1. Update Local Kubeconfig Matrix
+```text
+terraform/
+└── eks/
+    ├── .gitignore
+    ├── destroy.sh
+    ├── main.tf
+    ├── outputs.tf
+    ├── providers.tf
+    ├── terraform.tfvars.example
+    ├── variables.tf
+    └── versions.tf
+```
+
+The configuration uses pinned Terraform modules for the VPC and EKS resources and a constrained AWS provider version. The managed node group uses Amazon Linux 2023 and is configured with one desired node, a minimum of one node, and a maximum of two nodes.
+
+### 3. Verify the AWS identity Terraform will use
+
+The EC2 instance profile attached in Step 7.2 is used automatically by the AWS provider.
 
 ```bash
-aws eks update-kubeconfig --region <your-region> --name <your-cluster-name>
+aws sts get-caller-identity
 ```
 
-### 2. Register Console Web Access Entries
+Do not place long-lived AWS access keys in the Terraform files.
 
-* Run this snippet directly from your EC2 terminal to authorize your personal AWS browser login identity to view and track cluster components:
+### 4. Create your Terraform variable file
 
 ```bash
-# 1. Create an access entry for your Web Console IAM identity
-aws eks create-access-entry \
-    --cluster-name <YOUR_CLUSTER_NAME> \
-    --principal-arn arn:aws:iam::User-Account_ID:user/YOUR_CONSOLE_USER_NAME \
-    --type STANDARD
-
-# 2. Bind the Cluster Admin policy to that identity
-aws eks associate-access-policy \
-    --cluster-name <YOUR_CLUSTER_NAME> \
-    --principal-arn arn:aws:iam::User-Account_ID:user/YOUR_CONSOLE_USER_NAME \
-    --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy \
-    --access-scope type=cluster
+cd ~/netflix-clone-DevSecOps/terraform/eks
+cp terraform.tfvars.example terraform.tfvars
+nano terraform.tfvars
 ```
+
+At minimum, replace `allowed_cidrs` with trusted public IP addresses in `/32` notation.
+
+Example:
+
+```hcl
+aws_region   = "us-east-1"
+cluster_name = "netflix-devsecops-eks"
+
+allowed_cidrs = [
+  "203.0.113.10/32"
+]
+
+admin_principal_arns = [
+  "arn:aws:iam::123456789012:role/YourConsoleAdminRole"
+]
+```
+
+Use the public IP of the Jenkins/Prometheus EC2 host in `allowed_cidrs` if Prometheus on that host will scrape EKS Node Exporter. Add your workstation public IP as well if you will access the EKS API or Argo CD NodePort directly from your browser.
+
+### 5. Initialize, format, validate, and plan
+
+```bash
+terraform init
+terraform fmt -recursive
+terraform validate
+terraform plan -out=tfplan
+```
+
+Review the plan before applying it.
+
+### 6. Create the VPC and EKS cluster
+
+```bash
+terraform apply tfplan
+```
+
+When the apply completes, inspect the outputs:
+
+```bash
+terraform output
+```
+
+## 💡 <u>STEP 7.4: Configure kubectl and Verify the Terraform-Managed Cluster</u>
+
+Terraform grants the IAM identity that creates the cluster administrator access through an EKS access entry. Any additional IAM users or roles listed in `admin_principal_arns` are also managed by Terraform, so you do not need to run separate `aws eks create-access-entry` or `aws eks associate-access-policy` commands.
+
+### 1. Configure kubeconfig
+
+```bash
+cd ~/netflix-clone-DevSecOps/terraform/eks
+
+AWS_REGION=$(terraform output -raw aws_region)
+CLUSTER_NAME=$(terraform output -raw cluster_name)
+
+aws eks update-kubeconfig \
+  --region "$AWS_REGION" \
+  --name "$CLUSTER_NAME"
+```
+
+Or simply copy and run the command shown by:
+
+```bash
+terraform output -raw configure_kubectl
+```
+
+### 2. Verify cluster connectivity and worker nodes
+
+```bash
+kubectl cluster-info
+kubectl get nodes -o wide
+kubectl get pods -A
+```
+
+Do not continue until the managed worker node reports `Ready`.
 
 ## 💡 <u>STEP 7.5 Deploy Node Exporter DaemonSet via Helm</u>
 
@@ -925,13 +1003,25 @@ kubectl get pods -n prometheus-node-exporter -o wide
 
 * Connect the new EKS cluster infrastructure metrics streams to your existing standalone Prometheus engine running on your EC2 base host.
 
-### 1. Extract Your Kubernetes Worker Node Public IP
+### 1. Get the Kubernetes Worker Node Public IP
+
+Start by checking the node table:
 
 ```bash
 kubectl get nodes -o wide
 ```
 
-`(Locate the EXTERNAL-IP string for your running worker node)`
+If the `EXTERNAL-IP` column is populated, use that value. If it shows `<none>`, resolve the EC2 instance ID from the Kubernetes provider ID and query AWS directly:
+
+```bash
+NODE_INSTANCE_ID=$(kubectl get nodes -o jsonpath='{.items[0].spec.providerID}' | awk -F/ '{print $NF}')
+
+NODE_PUBLIC_IP=$(aws ec2 describe-instances   --instance-ids "$NODE_INSTANCE_ID"   --query 'Reservations[0].Instances[0].PublicIpAddress'   --output text)
+
+echo "$NODE_PUBLIC_IP"
+```
+
+Use the resulting `NODE_PUBLIC_IP` value for the Node Exporter and Argo CD URLs below.
 
 ### 2. Inject Scraping Tasks into Prometheus Configuration
 
@@ -947,7 +1037,7 @@ sudo nano /etc/prometheus/prometheus.yml
 - job_name: 'Netflix-K8s-Cluster'
     metrics_path: '/metrics'
     static_configs:
-      - targets: ['<YOUR-K8S-NODE-EXTERNAL-IP>:9100']
+      - targets: ['<YOUR-K8S-NODE-PUBLIC-IP>:9100']
 ```
 
 ### 3. Reload the Prometheus Configuration Matrix
@@ -990,7 +1080,7 @@ kubectl get svc argocd-server -n argocd
 ```
 
 * Identify the mapped port number `(e.g., 30000+)`. **Add port to the node's security group inbound rules**
-* Open your browser and navigate to: `https://<YOUR-K8S-NODE-EXTERNAL-IP>:<NODEPORT>` to log in with username admin and the auto-generated password above.
+* Open your browser and navigate to: `https://<YOUR-K8S-NODE-PUBLIC-IP>:<NODEPORT>` to log in with username admin and the auto-generated password above.
 
 `kubectl get nodes -o wide`
 
@@ -1040,41 +1130,63 @@ kubectl get service netflix
 
 ## 💡 <u>Delete Active Infrastructure to Avoid Cloud Costs</u>
 
-* Run these commands in order from your EC2 terminal workspace to tear down your laboratory components and drop your billing footprint back to zero.
+The EKS infrastructure created in Phase 7 is Terraform-managed. Do **not** delete the EKS cluster, node group, subnets, or VPC manually in the AWS Console, because doing so creates Terraform state drift.
+
+### Recommended: run the cleanup script
+
+From the repository root:
 
 ```bash
-# 1. Delete the ArgoCD orchestration tracking wrapper
-kubectl delete -n argocd application netflix-clone --cascade
-
-# 2. Uninstall metrics agents and drop dedicated workspace naming scopes
-helm uninstall cluster-node-exporter --namespace prometheus-node-exporter
-kubectl delete namespace prometheus-node-exporter
-kubectl delete namespace argocd
-
-# 3. Terminate LoadBalancer definitions to trigger AWS ELB component teardown
-kubectl delete svc --all --all-namespaces
-
-# 4. Tear Down the EKS Control Plane and associated Worker Node fleets
-eksctl delete cluster --name <cluster-name>> --region <region>
+chmod +x terraform/eks/destroy.sh
+./terraform/eks/destroy.sh
 ```
 
-`* If you created the cluster manually via the AWS Management Console:`
+The script first removes the Kubernetes resources installed outside Terraform, such as Argo CD and the Node Exporter Helm release, and then runs:
 
--Navigate to **Elastic Kubernetes Service** ➔ **Clusters**.
+```bash
+terraform -chdir=terraform/eks destroy -auto-approve
+```
 
--Click your **cluster name**, go to the **Compute tab**, select your **Node Groups**, and click **Delete**.
+### Manual Terraform teardown sequence
 
--Once the Node Groups are completely deleted, go back to the cluster page and click **Delete Cluster**.
+If you prefer to run the steps yourself:
 
-* Terminate all running/stopped instances
-* Clean Up Detached Persistent Volumes
+```bash
+# 1. Remove Argo CD application and namespace
+kubectl delete application.argoproj.io netflix-clone \
+  -n argocd --ignore-not-found=true || true
 
-`*  FINAL SANITY CHECK: The AWS Billing Dashboard`
+kubectl delete namespace argocd \
+  --ignore-not-found=true --wait=true || true
 
-To guarantee everything is completely gone and your spend footprint is dropped to zero:
+# 2. Remove the Node Exporter Helm release and namespace
+helm uninstall cluster-node-exporter \
+  --namespace prometheus-node-exporter || true
 
--Navigate to the **AWS Billing and Cost Management** console.
+kubectl delete namespace prometheus-node-exporter \
+  --ignore-not-found=true --wait=true || true
 
--Review the Bills section over the **next 24 hours**.
+# 3. Destroy all AWS resources recorded in the Terraform state
+terraform -chdir=terraform/eks plan -destroy
+terraform -chdir=terraform/eks destroy
+```
 
--Ensure no resources under **Elastic Compute Cloud**, **EBS**, or **EKS** are continuing to tick upward.
+> [!IMPORTANT]
+> Delete Kubernetes `LoadBalancer` Services before `terraform destroy` if you add any later. AWS load balancers and their networking resources can otherwise keep VPC resources in use and block deletion.
+
+### Verify Terraform has no remaining managed infrastructure
+
+```bash
+terraform -chdir=terraform/eks show
+terraform -chdir=terraform/eks state list
+```
+
+After a successful destroy, `terraform state list` should return no resources for this EKS stack.
+
+### Other resources from earlier phases
+
+The Phase 1 Jenkins/DevSecOps EC2 instance is **not** created by the Phase 7 Terraform stack, so it is not removed by `terraform destroy`. Terminate that EC2 instance separately when you are finished with the entire lab, and check for any EBS volumes, Elastic IPs, snapshots, or other manually created resources that you still own.
+
+### Final billing check
+
+Open **AWS Billing and Cost Management** and review the current charges and resource usage after the teardown. Billing data can lag behind resource deletion, so use the AWS service consoles or resource inventory to confirm that the resources are actually gone.
