@@ -10,6 +10,9 @@ pipeline {
         SCANNER_HOME = tool 'sonar-scanner'
         DOCKER_IMAGE = 'ursulan1/netflix'
         DOCKER_TAG = 'latest'
+
+        AWS REGION = 'us-east-1'
+        EKS_CLUSTER_NAME = 'netflix-cluster'
     }
 
     stages {
