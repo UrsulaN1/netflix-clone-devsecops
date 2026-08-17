@@ -193,7 +193,7 @@ Navigate to **Manage Jenkins** → **Plugins** → **Available Plugins** and ins
 * Slack Notification
 * Distributed Workspace Cleanup
 * Pipeline: Stage View
-* Prometheus metrics  (restart on success)
+* Prometheus metrics  (Restart Jenkins when installation is complete and no jobs are running)
 
 Ensure the following system configurations and tool mappings are completed:
 
