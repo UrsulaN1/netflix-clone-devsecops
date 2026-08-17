@@ -265,7 +265,7 @@ Kind:        Secret text
 Scope:       Global
 Secret:      Paste your SonarQube token
 ID:          Sonar-token
-Description: SonarQube authentication token
+Description: Sonar-token
 ```
 
 * Click on Apply and Save
