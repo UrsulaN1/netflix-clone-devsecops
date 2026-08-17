@@ -181,7 +181,6 @@ Navigate to **Manage Jenkins** → **Plugins** → **Available Plugins** and ins
 * NodeJs
 * OWASP Dependency-Check
 * Docker
-* Docker
 * Docker commons
 * Docker Pipeline
 * Docker API
