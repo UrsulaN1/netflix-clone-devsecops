@@ -147,22 +147,22 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 dir('Kubernetes') {
-                    withKubeConfig(
-                        caCertificate: '',
-                        clusterName: '',
-                        contextName: '',
-                        credentialsId: 'k8s',
-                        namespace: '',
-                        restrictKubeConfigAccess: false,
-                        serverUrl: ''
-                    ) {
-                        sh '''
-                            kubectl apply -f deployment.yml
-                            kubectl apply -f service.yml
+                    sh '''
+                        set -e
+                        export KUBECONFIG=/var/lib/jenkins/.kube/config
 
-                            kubectl get deployments
-                            kubectl get pods
-                            kubectl get services
+                        aws eks update-kubeconfig \
+                            --region "$AWS_REGION" \
+                            --name "$EKS_CLUSTER_NAME" \
+                            --kubeconfig "$KUBECONFIG"
+
+                        kubectl get nodes
+
+                        kubectl apply -f .
+
+                        kubectl get deployments
+                        kubectl get pods
+                        kubectl get services
                         '''
                     }
                 }
