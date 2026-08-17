@@ -471,8 +471,8 @@ sudo systemctl status jenkins --no-pager
 pipeline{
     agent any
     tools{
-        jdk 'jdk17'
-        nodejs 'node16'
+        jdk 'jdk21'
+        nodejs 'node18'
     }
     environment {
         SCANNER_HOME=tool 'sonar-scanner'
