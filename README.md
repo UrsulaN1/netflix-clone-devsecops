@@ -698,9 +698,9 @@ curl -X POST http://localhost:9090/-/reload
 
 * Create a dedicated user account in Jenkins (e.g., `prometheus`) or use your own account.
 
-* Click on the `username` in the top-right corner of Jenkins and click `Configure`.
+* Click on the `username` in the top-right corner of Jenkins and click `admin`.
 
-* Find the `API Token` section, click `Add new Token`, give it a name like **prometheus-scrape**, and click `Generate`.
+* Find the `Security` section, click `Add new Token`, give it a name like **prometheus-scrape**, and click `Generate`.
 
 * Copy the secret token immediately—you won't be able to see it again!
 
@@ -890,14 +890,14 @@ aws eks update-kubeconfig --region <your-region> --name <your-cluster-name>
 ```bash
 # 1. Create an access entry for your Web Console IAM identity
 aws eks create-access-entry \
-    --cluster-name netflix-k8s-cluster \
+    --cluster-name <YOUR_CLUSTER_NAME> \
     --principal-arn arn:aws:iam::User-Account_ID:user/YOUR_CONSOLE_USER_NAME \
     --type STANDARD
 
 # 2. Bind the Cluster Admin policy to that identity
 aws eks associate-access-policy \
-    --cluster-name netflix-k8s-cluster \
-    --principal-arn arn:aws:iam::User-Account_ID:user:user/YOUR_CONSOLE_USER_NAME \
+    --cluster-name <YOUR_CLUSTER_NAME> \
+    --principal-arn arn:aws:iam::User-Account_ID:user/YOUR_CONSOLE_USER_NAME \
     --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy \
     --access-scope type=cluster
 ```
